@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} (@mastra/core ${{ matrix.mastra }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # @mastra/core 1.x needs Node 22.13 or later, so there is no Node 20 job.
+        include:
+          - node: 22
+            mastra: locked
+          - node: 22
+            mastra: 1.20.0
+          - node: 24
+            mastra: locked
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - if: matrix.mastra != 'locked'
+        run: npm install --no-save @mastra/core@${{ matrix.mastra }}
+      - if: matrix.mastra == 'locked'
+        run: npm run typecheck
+      - run: npm run build
+      - run: npm test
